@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lineside@linux: ~</title>
+
+    <style>
+        /* --- ぜんぶのスタイル (CSS) --- */
+
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        html { box-sizing: border-box; }
+        *, *:before, *:after { box-sizing: inherit; }
+
+        body {
+            background-color: #1c1c1c;
+            color: #e0e0e0;
+            font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+            margin: 0;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* --- 1. ターミナルの「ウィンドウ」 --- */
+        .terminal {
+            width: 95%;
+            max-width: 1200px;
+            min-height: 80vh;
+            background: #0a0a0a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 2. ウィンドウのヘッダー --- */
+        .terminal-header {
+            height: 28px;
+            background: #2d2d2d;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            flex-shrink: 0; 
+        }
+
+        .header-dot { height: 12px; width: 12px; border-radius: 50%; margin: 0 4px; }
+        .dot-close { background-color: #ff5f57; }
+        .dot-minimize { background-color: #ffbd2e; }
+        .dot-maximize { background-color: #28c940; }
+
+        /* --- 3. ターミナルの内容 --- */
+        .terminal-body {
+            padding: 25px;
+            font-size: 14px;
+            line-height: 1.6;
+            flex-grow: 1; 
+            overflow-y: auto;
+        }
+        
+        .terminal-body::-webkit-scrollbar { width: 8px; }
+        .terminal-body::-webkit-scrollbar-track { background: #222; }
+        .terminal-body::-webkit-scrollbar-thumb { background-color: #444; border-radius: 4px; }
+
+        /* --- 4. プロンプトとコマンド --- */
+        .line { margin-bottom: 12px; }
+        .prompt { display: inline-block; }
+        .prompt-user { color: #8ae234; font-weight: 700; }
+        .prompt-path { color: #729fcf; font-weight: 700; }
+        .prompt-symbol { color: #e0e0e0; font-weight: 700; }
+        .command { color: #f0f0f0; }
+
+        /* --- 5. コマンドの「けっか」 --- */
+        .output { padding-left: 10px; }
+        .output-header { color: #ffeb3b; margin: 20px 0 10px 0; font-weight: 700; }
+        
+        /* AAの部分 */
+        pre {
+            font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+            color: #ad7fa8;
+            margin: 10px 0;
+            font-weight: 700;
+            overflow-x: auto;
+            white-space: pre; /* AAの空白を保持する */
+        }
+
+        .bio-text { color: #ccc; margin-bottom: 20px; }
+
+        /* --- 6. リンク集 --- */
+        .links-list { list-style: none; padding-left: 0; font-size: 13px; }
+        .links-list li {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        .file-perms { color: #888; margin-right: 15px; }
+        .links-list a {
+            color: #00e5ff;
+            text-decoration: none;
+            margin-right: auto;
+            transition: all 0.2s ease;
+        }
+        .links-list a:hover {
+            color: #ffffff;
+            background-color: #00e5ff30;
+            text-decoration: underline;
+        }
+        .file-info { color: #aaa; margin-left: 15px; }
+
+        /* さいごの入力まってるカーソル */
+        .cursor {
+            display: inline-block; width: 8px; height: 16px;
+            background-color: #e0e0e0; margin-left: 5px;
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ▼▼▼ スマホ用 (レスポンシブ) ▼▼▼ */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .terminal { width: 100%; min-height: 90vh; }
+            .terminal-body { padding: 15px; font-size: 13px; }
+            pre { font-size: 11px; }
+            .links-list li { white-space: normal; }
+            .links-list a { margin-right: 15px; }
+            .file-info { display: none; }
+        }
+        /* ▲▲▲ ここまで ▲▲▲ */
+
+    </style>
+</head>
+<body>
+
+    <div class="terminal">
+        <div class="terminal-header">
+            <span class="header-dot dot-close"></span>
+            <span class="header-dot dot-minimize"></span>
+            <span class="header-dot dot-maximize"></span>
+        </div>
+
+        <div class="terminal-body" id="terminal-body">
+            </div>
+    </div>
+
+<script>
+    // --- ぜんぶのうごき (JavaScript) ---
+
+    // ターミナルの表示エリア
+    const bodyEl = document.getElementById('terminal-body');
+    // ユーザー名
+    const user = 'lineside';
+    const path = ':~$';
+    const promptHTML = `<span class="prompt-user">${user}@linux</span><span class="prompt-path">${path}</span>`;
+    
+    // スクロールをさいごまでやる
+    const scrollToBottom = () => {
+        bodyEl.scrollTop = bodyEl.scrollHeight;
+    };
+
+    // テキストを1文字ずつ表示する機能
+    const typeText = (element, text, delay = 50) => {
+        return new Promise(resolve => {
+            let i = 0;
+            const typing = () => {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(typing, delay);
+                } else {
+                    resolve();
+                }
+            };
+            typing();
+        });
+    };
+
+    // コマンドの行を作る機能
+    const createCommandLine = async (command, delay = 100) => {
+        const line = document.createElement('div');
+        line.classList.add('line');
+        bodyEl.appendChild(line);
+
+        // 1. プロンプトを表示
+        line.innerHTML = `<div class="prompt">${promptHTML}</div> <span class="command"></span>`;
+        
+        // 2. コマンドをタイピング
+        const commandSpan = line.querySelector('.command');
+        await typeText(commandSpan, command, delay);
+        
+        scrollToBottom();
+    };
+
+    // 結果の行をそのまま表示する機能
+    const createOutput = (htmlContent) => {
+        const output = document.createElement('div');
+        output.classList.add('output');
+        output.innerHTML = htmlContent;
+        bodyEl.appendChild(output);
+        scrollToBottom();
+    };
+
+
+    // --- ターミナルの起動アニメーション ---
+    const bootAnimation = async () => {
+        const bootLines = [
+            `Linux ${user} 5.15.0-86-generic x86_64`,
+            `Starting systemd... [  OK  ]`,
+            `Initializing hardware... [  OK  ]`,
+            `Loading user modules... [  OK  ]`,
+            `Setting up network interfaces... [  OK  ]`,
+            `...`,
+            `Welcome to lineside's terminal.`,
+            `Last login: ${new Date().toLocaleString()} on tty1`
+        ];
+
+        bodyEl.innerHTML = ''; // 画面をクリア
+        
+        // 起動メッセージを順番に表示
+        for (const line of bootLines) {
+            const p = document.createElement('p');
+            p.textContent = line;
+            bodyEl.appendChild(p);
+            scrollToBottom();
+            await new Promise(r => setTimeout(r, 80)); // ちょっぴり待つ
+        }
+
+        await new Promise(r => setTimeout(r, 500)); // 少しながく待つ
+    };
+
+
+    // --- プロフィールを表示する内容 ---
+    const profileContent = `
+        <pre>
+ _ _                 _     _      
+| (_)_ __   ___  ___(_) __| | ___ 
+| | | '_ \\ / _ \\/ __| |/ _\` |/ _ \\
+| | | | | | __/\\__ \\| | (_| |  __/
+|_|_|_| |_|\\___||___/_|\\__,_|\\___|
+        </pre>
+
+        <h3 class="output-header">--- [ 自己紹介 -About Me- ] ---</h3>
+        <p class="bio-text">
+            はじめまして、lineside です。<br>
+            ゲームとプログラミングが好きな高校生です。
+        </p>
+        <p class="bio-text">
+            普段はTwitterとDiscordに生息しています。返信は気まぐれに。<br>
+            ブログを不定期に更新中。興味があればリンクツリーからどうぞ。
+        </p>
+
+        <h3 class="output-header">--- [ リンク集 -Links- ] ---</h3>
+        <ul class="links-list">
+            <li>
+                <span class="file-perms">-rw-r--r--</span>
+                <a href="https://github.com/lineside0418" target="_blank">github_profile</a>
+                <span class="file-info">1.2K  Nov 14 01:00</span>
+            </li>
+            <li>
+                <span class="file-perms">-rw-r--r--</span>
+                <a href="https://x.com/lineside0418" target="_blank">x_com (twitter)</a>
+                <span class="file-info"> 874B  Nov 12 22:15</span>
+            </li>
+            <li>
+                <span class="file-perms">-rw-r--r--</span>
+                <a href="https://lineside-blog.vercel.app" target="_blank">lineside-blog</a>
+                <span class="file-info"> 128K  Nov 10 08:30</span>
+            </li>
+            <li>
+                <span class="file-perms">-rw-r--r--</span>
+                <a href="#" target="_blank">Profile(this_page)</a>
+                <span class="file-info"> 4.5K  Oct 29 17:45</span>
+            </li>
+        </ul>
+    `;
+
+    // --- 最後のカーソル行 ---
+    const showFinalPrompt = () => {
+        const line = document.createElement('div');
+        line.classList.add('line');
+        line.innerHTML = `
+            <div class="prompt">
+                ${promptHTML}
+            </div>
+            <span class="cursor"></span>`;
+        bodyEl.appendChild(line);
+        scrollToBottom();
+    };
+
+    // --- メインの実行 ---
+    const main = async () => {
+        // 1. 起動アニメーション
+        await bootAnimation();
+        
+        // 2. clearコマンドを自動入力
+        await createCommandLine('clear', 100); 
+        await new Promise(r => setTimeout(r, 200)); 
+        
+        // 3. 画面をクリア (中身を消す)
+        bodyEl.innerHTML = '';
+        
+        // 4. ロードメッセージを表示
+        const loadingMessage = document.createElement('p');
+        loadingMessage.innerHTML = `<span style="color: #ff9900;">Loading...</span>`;
+        bodyEl.appendChild(loadingMessage);
+        scrollToBottom();
+        
+        // 5. ロード時間 (1.5秒待つ)
+        await new Promise(r => setTimeout(r, 1500));
+        
+        bodyEl.innerHTML = ''; // ロードメッセージを消す
+        
+        // 6. コマンドを自動で入力 (1文字0.1秒)
+        await createCommandLine('./show_profile.sh', 100);
+        
+        // 7. Enterを押したあとの間 (0.5秒)
+        await new Promise(r => setTimeout(r, 500));
+        
+        // 8. 結果を一度に表示
+        createOutput(profileContent);
+        
+        // 9. 最後のプロンプトとカーソルを表示
+        await new Promise(r => setTimeout(r, 300));
+        showFinalPrompt();
+    };
+
+    // ページが開いたら、メインを実行する
+    window.onload = main;
+    
+</script>
+
+</body>
+</html>
