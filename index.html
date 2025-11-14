@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="./terminal.svg">
     <title>lineside@linux: ~</title>
 
     <style>
@@ -30,7 +29,7 @@
         .terminal {
             width: 95%;
             max-width: 1200px;
-            min-height: 80vh;
+            height: 80vh; /* たかさ「こてい」 */
             background: #0a0a0a;
             border: 1px solid #444;
             border-radius: 8px;
@@ -62,6 +61,7 @@
             line-height: 1.6;
             flex-grow: 1; 
             overflow-y: auto;
+            cursor: text;
         }
         
         .terminal-body::-webkit-scrollbar { width: 8px; }
@@ -69,8 +69,16 @@
         .terminal-body::-webkit-scrollbar-thumb { background-color: #444; border-radius: 4px; }
 
         /* --- 4. プロンプトとコマンド --- */
-        .line { margin-bottom: 12px; }
-        .prompt { display: inline-block; }
+        .line { 
+            margin-bottom: 12px; 
+            display: flex;
+            align-items: baseline;
+        }
+        .prompt { 
+            display: inline-block;
+            flex-shrink: 0;
+            margin-right: 8px;
+        }
         .prompt-user { color: #8ae234; font-weight: 700; }
         .prompt-path { color: #729fcf; font-weight: 700; }
         .prompt-symbol { color: #e0e0e0; font-weight: 700; }
@@ -80,14 +88,13 @@
         .output { padding-left: 10px; }
         .output-header { color: #ffeb3b; margin: 20px 0 10px 0; font-weight: 700; }
         
-        /* AAの部分 */
         pre {
             font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
             color: #ad7fa8;
             margin: 10px 0;
             font-weight: 700;
             overflow-x: auto;
-            white-space: pre; /* AAの空白を保持する */
+            white-space: pre;
         }
 
         .bio-text { color: #ccc; margin-bottom: 20px; }
@@ -128,12 +135,31 @@
         /* ▼▼▼ スマホ用 (レスポンシブ) ▼▼▼ */
         @media (max-width: 600px) {
             body { padding: 10px; }
-            .terminal { width: 100%; min-height: 90vh; }
+            .terminal { 
+                width: 100%; 
+                height: 90vh;
+            }
             .terminal-body { padding: 15px; font-size: 13px; }
             pre { font-size: 11px; }
             .links-list li { white-space: normal; }
             .links-list a { margin-right: 15px; }
             .file-info { display: none; }
+        }
+        /* ▲▲▲ ここまで ▲▲▲ */
+
+
+        /* ▼▼▼ ほんとうの「入力欄」のスタイル ▼▼▼ */
+        .terminal-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #f0f0f0;
+            font-family: 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+            font-size: inherit;
+            line-height: inherit;
+            padding: 0;
+            flex-grow: 1;
+            width: auto;
         }
         /* ▲▲▲ ここまで ▲▲▲ */
 
@@ -148,19 +174,25 @@
             <span class="header-dot dot-maximize"></span>
         </div>
 
-        <div class="terminal-body" id="terminal-body">
+        <div class="terminal-body" id="terminal-body" onclick="document.querySelector('.terminal-input')?.focus()">
             </div>
     </div>
 
 <script>
     // --- ぜんぶのうごき (JavaScript) ---
 
-    // ターミナルの表示エリア
     const bodyEl = document.getElementById('terminal-body');
-    // ユーザー名
     const user = 'lineside';
     const path = ':~$';
-    const promptHTML = `<span class="prompt-user">${user}@linux</span><span class="prompt-path">${path}</span>`;
+    const promptHTML = `<span class="prompt"><span class="prompt-user">${user}@linux</span><span class="prompt-path">${path}</span></span>`;
+    
+    // ▼▼▼ リンクのURL (ここを先生がなおしてね) ▼▼▼
+    const urls = {
+        github: 'https://github.com/lineside0418',
+        twitter: 'https://x.com/lineside0418',
+        blog: 'https://lineside-blog.vercel.app' // ← ここを先生のブログURLに！ (例: 'https://lineside.blog/')
+    };
+    // ▲▲▲ ここまで ▲▲▲
     
     // スクロールをさいごまでやる
     const scrollToBottom = () => {
@@ -184,19 +216,15 @@
         });
     };
 
-    // コマンドの行を作る機能
+    // コマンドの行を作る機能 (自動実行用)
     const createCommandLine = async (command, delay = 100) => {
         const line = document.createElement('div');
         line.classList.add('line');
         bodyEl.appendChild(line);
-
-        // 1. プロンプトを表示
-        line.innerHTML = `<div class="prompt">${promptHTML}</div> <span class="command"></span>`;
+        line.innerHTML = `${promptHTML} <span class="command"></span>`;
         
-        // 2. コマンドをタイピング
         const commandSpan = line.querySelector('.command');
         await typeText(commandSpan, command, delay);
-        
         scrollToBottom();
     };
 
@@ -222,19 +250,16 @@
             `Welcome to lineside's terminal.`,
             `Last login: ${new Date().toLocaleString()} on tty1`
         ];
-
-        bodyEl.innerHTML = ''; // 画面をクリア
+        bodyEl.innerHTML = '';
         
-        // 起動メッセージを順番に表示
         for (const line of bootLines) {
             const p = document.createElement('p');
             p.textContent = line;
             bodyEl.appendChild(p);
             scrollToBottom();
-            await new Promise(r => setTimeout(r, 80)); // ちょっぴり待つ
+            await new Promise(r => setTimeout(r, 80));
         }
-
-        await new Promise(r => setTimeout(r, 500)); // 少しながく待つ
+        await new Promise(r => setTimeout(r, 500));
     };
 
 
@@ -247,7 +272,6 @@
 | | | | | | __/\\__ \\| | (_| |  __/
 |_|_|_| |_|\\___||___/_|\\__,_|\\___|
         </pre>
-
         <h3 class="output-header">--- [ 自己紹介 -About Me- ] ---</h3>
         <p class="bio-text">
             はじめまして、lineside です。<br>
@@ -283,18 +307,163 @@
         </ul>
     `;
 
-    // --- 最後のカーソル行 ---
-    const showFinalPrompt = () => {
+    // --- helpコマンドの内容 (コマンドふやしたよ) ---
+    const helpContent = `
+        <p>Available commands:</p>
+        <ul>
+            <li><span style="color: #00e5ff;">./show_profile.sh</span> (or <span style="color: #00e5ff;">profile</span>) - Show profile information</li>
+            <li><span style="color: #00e5ff;">github</span> / <span style="color: #00e5ff;">twitter</span> (or <span style="color: #00e5ff;">x</span>) / <span style="color: #00e5ff;">blog</span> - Open links</li>
+            <li><span style="color: #00e5ff;">whoami</span>              - Show current user</li>
+            <li><span style="color: #00e5ff;">date</span>                - Show current date and time</li>
+            <li><span style="color: #00e5ff;">reload</span>              - Reload this page</li>
+            <li><span style="color: #00e5ff;">clear</span>               - Clear the terminal screen</li>
+            <li><span style="color: #00e5ff;">matrix</span>              - ...?</li>
+        </ul>
+    `;
+
+    // --- イースターエッグ (matrix) ---
+    const runMatrixAnimation = () => {
+        return new Promise(resolve => {
+            bodyEl.innerHTML = ''; // ぜんぶけす
+            bodyEl.style.color = '#0f0'; // みどり
+            bodyEl.style.lineHeight = '1.2';
+            bodyEl.style.overflow = 'hidden'; // アニメ中だけスクロールバーをかくす
+
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            
+            const interval = setInterval(() => {
+                const p = document.createElement('p');
+                p.style.margin = '0';
+                
+                let line = '';
+                for (let i = 0; i < 70; i++) {
+                    line += chars[Math.floor(Math.random() * chars.length)];
+                }
+                p.textContent = line;
+                
+                bodyEl.appendChild(p);
+                
+                if (bodyEl.children.length > 50) { 
+                    bodyEl.removeChild(bodyEl.firstChild);
+                }
+                scrollToBottom();
+            }, 100);
+
+            // 3秒後にアニメーションをおわらせる
+            setTimeout(() => {
+                clearInterval(interval);
+                bodyEl.innerHTML = '';
+                bodyEl.style.color = '';
+                bodyEl.style.lineHeight = '';
+                bodyEl.style.overflow = 'auto';
+                resolve();
+            }, 3000);
+        });
+    };
+
+    // --- ほんとうの「入力」をあつかうところ ---
+
+    // 1. 新しい「入力」の行を作る
+    const createNewPrompt = () => {
         const line = document.createElement('div');
         line.classList.add('line');
+        
         line.innerHTML = `
-            <div class="prompt">
-                ${promptHTML}
-            </div>
-            <span class="cursor"></span>`;
+            ${promptHTML}
+            <input type="text" class="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        `;
+        
         bodyEl.appendChild(line);
+        
+        const input = line.querySelector('.terminal-input');
+        input.addEventListener('keydown', handleCommand);
+        
+        input.focus();
         scrollToBottom();
     };
+
+    // 2. 「Enterキー」がおされたときの動き (ここをぜんぶかえたよ！)
+    const handleCommand = async (e) => {
+        if (e.key !== 'Enter') {
+            return;
+        }
+        
+        e.preventDefault();
+        
+        const input = e.target;
+        const command = input.value.trim();
+        const cmdLower = command.toLowerCase();
+        
+        // いまの行を「入力ずみ」のかたちに書き換える
+        const parentLine = input.parentElement;
+        parentLine.innerHTML = `${promptHTML} <span class="command">${command}</span>`;
+        
+        // 3. コマンドによって、やることを変える
+        switch (cmdLower) {
+            case 'clear':
+                bodyEl.innerHTML = '';
+                break;
+                
+            case './show_profile.sh':
+            case 'profile':
+                createOutput(profileContent);
+                break;
+                
+            case 'help':
+                createOutput(helpContent);
+                break;
+
+            case 'matrix':
+                await runMatrixAnimation();
+                break;
+            
+            // --- ▼▼▼ 新しいコマンド ▼▼▼ ---
+            case 'x':
+            case 'twitter':
+                createOutput(`Navigating to Twitter (${urls.twitter})...`);
+                window.open(urls.twitter, '_blank');
+                break;
+            
+            case 'github':
+                createOutput(`Navigating to GitHub (${urls.github})...`);
+                window.open(urls.github, '_blank');
+                break;
+                
+            case 'blog':
+                if (urls.blog === '#') {
+                    createOutput(`<span style="color: #ffbd2e;">Warning: Blog URL is not set.</span><br>Please ask lineside to edit the 'urls' variable in index.html.`);
+                } else {
+                    createOutput(`Navigating to Blog (${urls.blog})...`);
+                    window.open(urls.blog, '_blank');
+                }
+                break;
+
+            case 'whoami':
+                createOutput(user);
+                break;
+                
+            case 'date':
+                createOutput(new Date().toLocaleString());
+                break;
+                
+            case 'reload':
+                createOutput('Reloading terminal...');
+                setTimeout(() => location.reload(), 1000);
+                return; // これいかがだいじ！
+            // --- ▲▲▲ ここまで ▲▲▲ ---
+                
+            case '':
+                break;
+                
+            default:
+                createOutput(`<span style="color: #ff5f57;">command not found: ${command}</span><br>Type 'help' for available commands.`);
+        }
+        
+        // 4. ぜんぶ終わったら、また新しい「入力」の行を作る
+        // (reload 以外)
+        createNewPrompt();
+    };
+
 
     // --- メインの実行 ---
     const main = async () => {
@@ -328,9 +497,9 @@
         // 8. 結果を一度に表示
         createOutput(profileContent);
         
-        // 9. 最後のプロンプトとカーソルを表示
+        // 9. さいしょの「ほんとうの入力」の行を作る
         await new Promise(r => setTimeout(r, 300));
-        showFinalPrompt();
+        createNewPrompt();
     };
 
     // ページが開いたら、メインを実行する
